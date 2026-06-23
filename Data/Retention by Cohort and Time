@@ -1,0 +1,31 @@
+with cohort AS(
+    select distinct user_id,
+    MIN(signup_date)as signup_date,
+    TO_CHAR(date_trunc ('month',MIN(signup_date)), 'YYYY-MM') As cohort
+    from mercadolibre_retention
+    group by user_id
+    
+ ),
+ activity AS(  
+    Select 
+    r.day_after_signup,
+    r.active,
+    r.user_id,
+    c.cohort
+    from mercadolibre_retention as r
+    left join cohort as c
+    on c.user_id = r.user_id
+    where r.activity_date between '2025-01-01' and '2025-08-31'
+    --group by r.user_id, r.day_after_signup, r.active, c.cohort
+)
+    
+Select 
+cohort,
+
+Round(100.0*COUNT(DISTINCT CASE WHEN day_after_signup >= 7  AND active = 1 THEN user_id END)/ NULLIF(count (distinct user_id),0),1)as retention_d7_pct,  
+Round(100.0*COUNT(DISTINCT CASE WHEN day_after_signup >= 14  AND active = 1 THEN user_id END)/ NULLIF(count (distinct user_id),0),1)as retention_d14_pct,  
+Round(100.0*COUNT(DISTINCT CASE WHEN day_after_signup >= 21  AND active = 1 THEN user_id END)/ NULLIF(count (distinct user_id),0),1)as retention_d21_pct, 
+Round(100.0*COUNT(DISTINCT CASE WHEN day_after_signup >= 28  AND active = 1 THEN user_id END)/ NULLIF(count (distinct user_id),0),1)as retention_d28_pct     
+From activity
+group by cohort 
+order by cohort
